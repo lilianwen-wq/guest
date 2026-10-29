@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>訪客登記 / Visitor Registration</title>
+    <style>
+        :root { --primary: #2563eb; --border: #cbd5e1; --bg: #f8fafc; --text: #1e293b; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .card { max-width: 480px; margin: auto; background: #ffffff; border-radius: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); padding: 22px; }
+        .lang-switch { display: flex; background: #f1f5f9; padding: 4px; border-radius: 8px; margin-bottom: 18px; gap: 4px; }
+        .lang-btn { flex: 1; border: none; background: transparent; padding: 8px 4px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #64748b; cursor: pointer; text-align: center; }
+        .lang-btn.active { background: #ffffff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .header-title { font-size: 20px; font-weight: bold; margin: 0 0 4px 0; text-align: center; color: #0f172a; }
+        .header-subtitle { font-size: 13px; color: #64748b; text-align: center; margin: 0 0 18px 0; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #334155; }
+        .form-group input, .form-group select { width: 100%; height: 46px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; background: #fff; }
+        .btn-submit { width: 100%; height: 48px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLanguage('zh')">中文</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+        <button class="lang-btn" onclick="setLanguage('ja')">日本語</button>
+        <button class="lang-btn" onclick="setLanguage('ko')">한국어</button>
+    </div>
+
+    <h1 class="header-title" id="t_title">訪客登記</h1>
+    <p class="header-subtitle" id="t_subtitle">請輸入您的基本資料，以便為您辦理入廠手續</p>
+
+    <form id="visitorForm" onsubmit="submitForm(event)">
+        <div class="form-group">
+            <label id="t_name_lbl">訪客姓名 *</label>
+            <input type="text" id="name" required placeholder="">
+        </div>
+        <div class="form-group">
+            <label id="t_phone_lbl">手機號碼 *</label>
+            <input type="tel" id="phone" required placeholder="">
+        </div>
+        <div class="form-group">
+            <label id="t_identity_lbl">訪客身分 *</label>
+            <select id="identity" required></select>
+        </div>
+        <div class="form-group">
+            <label id="t_company_lbl">訪客企業名稱 / 單位</label>
+            <input type="text" id="company" placeholder="">
+        </div>
+        <div class="form-group">
+            <label id="t_host_lbl">欲拜訪同仁 *</label>
+            <input type="text" id="host" required placeholder="">
+        </div>
+        <div class="form-group">
+            <label id="t_count_lbl">訪客人數</label>
+            <input type="number" id="guestCount" min="1" value="1" required>
+        </div>
+        <button type="submit" class="btn-submit" id="t_submit_btn">送出登記</button>
+    </form>
+</div>
+
+<script>
+    const DB_URL = "https://company-visitor-47fb4-default-rtdb.firebaseio.com/";
+
+    const i18n = {
+        zh: {
+            title: "訪客登記", subtitle: "請輸入您的基本資料，以便為您辦理入廠手續",
+            name_lbl: "訪客姓名 *", name_ph: "例：王小明",
+            phone_lbl: "手機號碼 *", phone_ph: "例：0912-345-678",
+            identity_lbl: "訪客身分 *",
+            identities: ["廠商 / 合作外包商", "商務拜訪 / 客戶", "面試求職", "外送 / 物流", "私人訪客", "其他"],
+            company_lbl: "訪客企業名稱 / 單位", company_ph: "例：OO科技 (無可填無)",
+            host_lbl: "欲拜訪同仁 *", host_ph: "例：工程部 李處長",
+            count_lbl: "訪客人數", submit_btn: "送出登記",
+            success_msg: "登記成功！請至櫃檯總機領取訪客證。"
+        },
+        en: {
+            title: "Visitor Registration", subtitle: "Please enter your information to proceed with reception",
+            name_lbl: "Full Name *", name_ph: "e.g. John Doe",
+            phone_lbl: "Mobile Phone Number *", phone_ph: "e.g. +886 912-345-678",
+            identity_lbl: "Visitor Identity *",
+            identities: ["Contractor / Vendor", "Business Meeting / Client", "Interviewee", "Delivery / Courier", "Personal Guest", "Other"],
+            company_lbl: "Company / Organization", company_ph: "e.g. ABC Tech Corp",
+            host_lbl: "Host / Person to Visit *", host_ph: "e.g. David Smith (Marketing)",
+            count_lbl: "Number of Visitors", submit_btn: "Submit Registration",
+            success_msg: "Registration completed! Please pick up your visitor badge at the reception."
+        },
+        ja: {
+            title: "来訪者登録", subtitle: "受付手続きのため、基本情報をご入力ください",
+            name_lbl: "お名前 *", name_ph: "例：山田 太郎",
+            phone_lbl: "携帯電話番号 *", phone_ph: "例：090-1234-5678",
+            identity_lbl: "区分・身分 *",
+            identities: ["取引先・ベンダー", "商談・来客", "採用面接", "配達・配送", "私用面会", "その他"],
+            company_lbl: "貴社名・所属組織", company_ph: "例：〇〇株式会社",
+            host_lbl: "ご訪問先（担当者名） *", host_ph: "例：営業部 佐藤",
+            count_lbl: "来訪人数", submit_btn: "登録を完了する",
+            success_msg: "登録が完了しました。受付で入館バッジをお受け取りください。"
+        },
+        ko: {
+            title: "방문객 등록", subtitle: "출입 절차를 위해 방문객 정보를 입력해 주십시오",
+            name_lbl: "방문객 성명 *", name_ph: "예: 홍길동",
+            phone_lbl: "휴대폰 번호 *", phone_ph: "예: 010-1234-5678",
+            identity_lbl: "방문 목적 / 신分 *",
+            identities: ["협력업체 / 외주", "비즈니스 미팅 / 고객", "면접자", "배달 / 택배", "개인 방문", "기타"],
+            company_lbl: "회사명 / 소속", company_ph: "예: OO 주식회사",
+            host_lbl: "접견 대상자 (담당자) *", host_ph: "예: 개발팀 김팀장",
+            count_lbl: "방문 인원수", submit_btn: "등록 제출",
+            success_msg: "등록이 완료되었습니다. 안내데스크에서 방문증을 수령해 주십시오."
+        }
+    };
+
+    let currentLang = 'zh';
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        const dict = i18n[lang];
+        document.querySelectorAll('.lang-btn').forEach((b, idx) => b.classList.toggle('active', ['zh','en','ja','ko'][idx] === lang));
+        document.getElementById('t_title').innerText = dict.title;
+        document.getElementById('t_subtitle').innerText = dict.subtitle;
+        document.getElementById('t_name_lbl').innerText = dict.name_lbl;
+        document.getElementById('name').placeholder = dict.name_ph;
+        document.getElementById('t_phone_lbl').innerText = dict.phone_lbl;
+        document.getElementById('phone').placeholder = dict.phone_ph;
+        document.getElementById('t_identity_lbl').innerText = dict.identity_lbl;
+        document.getElementById('t_company_lbl').innerText = dict.company_lbl;
+        document.getElementById('company').placeholder = dict.company_ph;
+        document.getElementById('t_host_lbl').innerText = dict.host_lbl;
+        document.getElementById('host').placeholder = dict.host_ph;
+        document.getElementById('t_count_lbl').innerText = dict.count_lbl;
+        document.getElementById('t_submit_btn').innerText = dict.submit_btn;
+
+        const select = document.getElementById('identity');
+        select.innerHTML = '';
+        dict.identities.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            opt.innerText = item;
+            select.appendChild(opt);
+        });
+    }
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const getNowTimeStr = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    async function submitForm(e) {
+        e.preventDefault();
+        const btn = document.getElementById('t_submit_btn');
+        btn.disabled = true;
+        btn.innerText = "傳送中...";
+
+        const payload = {
+            id: Date.now(),
+            timeIn: getNowTimeStr(),
+            timeOut: "",
+            name: document.getElementById('name').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            identity: document.getElementById('identity').value,
+            company: document.getElementById('company').value.trim() || '無',
+            host: document.getElementById('host').value.trim(),
+            guestCount: document.getElementById('guestCount').value || 1,
+            cardNo: "",
+            notes: "",
+            status: "IN"
+        };
+
+        try {
+            const url = `${DB_URL.replace(/\/$/, "")}/visitors/${payload.id}.json`;
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert(i18n[currentLang].success_msg);
+                document.getElementById('visitorForm').reset();
+                document.getElementById('guestCount').value = 1;
+            } else {
+                alert("送出失敗，請通知櫃檯總機！");
+            }
+        } catch (err) {
+            alert("網路連線發生錯誤，請確認手機網路！");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = i18n[currentLang].submit_btn;
+        }
+    }
+
+    setLanguage('zh');
+</script>
+</body>
+</html>
